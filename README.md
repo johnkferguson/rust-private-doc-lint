@@ -125,3 +125,7 @@ test cases alone. CI runs `nix flake check`, the format check, and
 `gh actions-lock` and commit `.github/workflows/actions.lock`, with the
 extension at the version `ci.yml` pins
 (`gh extension install github/gh-actions-lock --pin v0.4.1`).
+
+## License
+
+[MIT](LICENSE).

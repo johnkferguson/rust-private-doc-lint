@@ -26,6 +26,11 @@
         runtimeInputs = [pkgs.ast-grep];
         runtimeEnv.RULES = rules;
         text = builtins.readFile ./rust-private-doc-lint.sh;
+        meta = {
+          description = "Flags doc comments on private Rust items";
+          license = nixpkgs.lib.licenses.mit;
+          mainProgram = "rust-private-doc-lint";
+        };
       };
     in {
       inherit rust-private-doc-lint;
