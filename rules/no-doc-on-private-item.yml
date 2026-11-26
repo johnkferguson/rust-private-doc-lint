@@ -86,11 +86,12 @@ utils:
   macro-export:
     follows:
       kind: attribute_item
-      regex: macro_export
+      regex: ^#\s*\[\s*(macro_export|cfg_attr\s*\([\s\S]*,\s*macro_export)\b
       stopBy:
         not:
           matches: between
-  # A pub use of the macro's name after it in the same module.
+  # A pub use of the macro's name after it in the same module: the name
+  # alone, renamed with as, or in a braced list.
   macro-reexport:
     all:
       - has:
@@ -104,7 +105,20 @@ utils:
                 matches: public-visibility
             - has:
                 field: argument
-                pattern: $NAME
+                any:
+                  - pattern: $NAME
+                  - kind: use_as_clause
+                    has:
+                      field: path
+                      pattern: $NAME
+                  - kind: use_list
+                    has:
+                      any:
+                        - pattern: $NAME
+                        - kind: use_as_clause
+                          has:
+                            field: path
+                            pattern: $NAME
   macro-use-module:
     inside:
       kind: declaration_list
@@ -112,7 +126,7 @@ utils:
         kind: mod_item
         follows:
           kind: attribute_item
-          regex: macro_use
+          regex: ^#\s*\[\s*(macro_use|cfg_attr\s*\([\s\S]*,\s*macro_use)\b
           stopBy:
             not:
               matches: between
@@ -178,6 +192,9 @@ rule:
   not:
     follows:
       matches: doc-comment
+      stopBy:
+        not:
+          matches: between
   precedes:
     matches: private-item
     stopBy:

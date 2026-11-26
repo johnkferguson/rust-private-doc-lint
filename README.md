@@ -5,8 +5,8 @@ comments on private Rust items, packaged as a Nix flake.
 
 A doc comment documents an item for code outside its module. On a
 private item, use a `//` comment when it explains a non-obvious why, or
-delete it. The lint works on the syntax tree, so it needs no build: it
-reads tens of thousands of lines in well under a second.
+delete it. The lint works on the syntax tree, so it doesn't need a
+build, and it reads tens of thousands of lines in well under a second.
 
 ## What It Flags
 
@@ -21,8 +21,9 @@ A doc comment (`///`, `/** */`, `#[doc = "..."]`, or a `doc = "..."` in
 - A trait's method, associated type or constant when the trait is
   private. Trait items take the trait's visibility.
 - A `macro_rules!` macro that nothing makes visible outside its module.
-  `#[macro_export]`, a `pub` `use` of its name later in the same module,
-  or `#[macro_use]` on an inline module around it each count as public.
+  `#[macro_export]`, a `pub` `use` of its name later in the same module
+  (renamed with `as` or in a braced list too), or `#[macro_use]` on an
+  inline module around it each count as public.
 
 The items of a trait impl count as public, and so does an impl block.
 The [rule](rules/no-doc-on-private-item.yml) holds these, and its
@@ -48,9 +49,10 @@ nix run github:johnkferguson/rust-private-doc-lint -- [--ignore <glob>]... [<pat
 
 It scans the paths given, the current directory by default, and skips
 the files `.gitignore` lists. Each `--ignore` skips the files a glob
-matches, such as `--ignore 'vendor/**'`. It prints ast-grep's report and
-exits 1 when it finds a doc comment on a private item, 2 on a bad
-option, and 0 otherwise.
+matches under a directory argument, such as `--ignore 'vendor/**'`; a
+file named as an argument is always scanned. It prints ast-grep's report
+and exits 1 when it finds a doc comment on a private item, 2 on a bad
+option or a path that doesn't exist, and 0 otherwise.
 
 ## Adding It to a Repo
 

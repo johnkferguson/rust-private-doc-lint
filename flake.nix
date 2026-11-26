@@ -42,8 +42,8 @@
         touch $out
       '';
 
-      # The command passes a clean tree, fails a flagged one with exit 1,
-      # and skips what --ignore names.
+      # The command passes a clean tree, fails a flagged one with exit 1
+      # and a missing path with exit 2, and skips what --ignore names.
       command = pkgs.runCommand "command" {nativeBuildInputs = [lint];} ''
         mkdir -p tree/src tree/vendor
         printf '/// Public.\npub fn public() {}\n' > tree/src/clean.rs
@@ -52,12 +52,20 @@
 
         rust-private-doc-lint src
 
-        status=0
-        rust-private-doc-lint >/dev/null || status=$?
-        if [ "$status" -ne 1 ]; then
-          echo "expected exit 1 on a flagged file, got $status" >&2
-          exit 1
-        fi
+        expect_exit() {
+          local expected="$1"
+          shift
+          local status=0
+          rust-private-doc-lint "$@" >/dev/null 2>&1 || status=$?
+          if [ "$status" -ne "$expected" ]; then
+            echo "expected exit $expected from rust-private-doc-lint $*, got $status" >&2
+            exit 1
+          fi
+        }
+        expect_exit 1
+        expect_exit 2 missing
+        expect_exit 2 src missing
+        expect_exit 2 --bogus
 
         rust-private-doc-lint --ignore 'vendor/**'
         rust-private-doc-lint --ignore=vendor/flagged.rs .
