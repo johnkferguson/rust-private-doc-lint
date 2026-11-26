@@ -1,0 +1,296 @@
+id: no-doc-on-private-item
+valid:
+  - |
+    /// Public.
+    pub fn public() {}
+  - |
+    /// Crate.
+    pub(crate) fn in_crate() {}
+  - |
+    /// Parent module.
+    pub(super) fn in_parent() {}
+  - |
+    /// A path.
+    pub(in crate::a) fn in_path() {}
+  - |
+    /// Attributes between.
+    #[must_use]
+    #[inline]
+    pub const fn attributed() -> u8 { 0 }
+  - |
+    // A code comment.
+    fn private() {}
+  - |
+    //// Four slashes make a code comment.
+    fn private() {}
+  - |
+    /*** Three stars make a code comment. */
+    fn private() {}
+  - |
+    #[doc(hidden)]
+    fn hidden() {}
+  - |
+    mod inner {
+        //! An inner doc on a private module.
+    }
+  - |
+    struct Private {
+        /// Public field.
+        pub field: u8,
+        // Code comment.
+        other: u8,
+    }
+  - |
+    struct Tuple(/// Public field.
+        pub u8);
+  - |
+    /// Public enum.
+    pub enum State {
+        /// Variant.
+        Idle,
+        /// Struct variant.
+        Busy {
+            /// Variant field.
+            since: u64,
+        },
+        /// Tuple variant.
+        Done(/// Variant field.
+            u64),
+    }
+  - |
+    /// Public trait.
+    pub trait Contract {
+        /// Associated type.
+        type Output;
+        /// Associated constant.
+        const LIMIT: u8;
+        /// Required method.
+        fn required(&self);
+        /// Provided method.
+        fn provided(&self) {}
+    }
+  - |
+    /// Crate trait.
+    pub(crate) trait Inner {
+        /// Method.
+        fn method(&self);
+    }
+  - |
+    struct Private;
+    impl core::fmt::Display for Private {
+        /// Trait impl method.
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result { Ok(()) }
+    }
+  - |
+    impl<T> crate::Contract for Wrapper<T> {
+        /// Generic trait impl.
+        type Output = T;
+    }
+  - |
+    /// An inherent impl block.
+    impl Public {
+        /// Public method.
+        pub fn method(&self) {}
+    }
+  - |
+    /// Exported macro.
+    #[macro_export]
+    macro_rules! exported {
+        () => {};
+    }
+  - |
+    /// Macro re-exported to the crate.
+    macro_rules! shared {
+        () => {};
+    }
+    pub(crate) use shared;
+  - |
+    /// Macro re-exported under another name.
+    macro_rules! shared {
+        () => {};
+    }
+    pub(crate) use shared as renamed;
+  - |
+    /// Macro re-exported in a braced list.
+    macro_rules! shared {
+        () => {};
+    }
+    pub(crate) use {other, shared as renamed};
+  - |
+    /// Macro exported under a cfg_attr.
+    #[cfg_attr(feature = "export", macro_export)]
+    macro_rules! shared {
+        () => {};
+    }
+  - |
+    #[macro_use]
+    mod macros {
+        /// Macro visible after its module.
+        macro_rules! shared {
+            () => {};
+        }
+    }
+  - |
+    /// Re-export.
+    pub use crate::inner::Item;
+  - |
+    /// Public module.
+    pub mod public;
+  - |
+    fn body() {
+        /// Inside a macro, which the grammar leaves as tokens.
+        println!("{}", 1);
+    }
+invalid:
+  - |
+    /// Private.
+    fn private() {}
+  - |
+    /// Attributes between.
+    #[inline]
+    #[cfg(test)]
+    fn private() {}
+  - |
+    /// Self.
+    pub(self) fn private() {}
+  - |
+    /// In self.
+    pub(in self) fn private() {}
+  - |
+    /** Block doc. */
+    fn private() {}
+  - |
+    #[doc = "Doc attribute."]
+    fn private() {}
+  - |
+    #[cfg_attr(feature = "docs", doc = "Conditional doc attribute.")]
+    fn private() {}
+  - |
+    /// Struct.
+    struct Private;
+  - |
+    /// Enum.
+    enum Private {}
+  - |
+    /// Union.
+    union Private { a: u8 }
+  - |
+    /// Alias.
+    type Private = u8;
+  - |
+    /// Constant.
+    const PRIVATE: u8 = 0;
+  - |
+    /// Static.
+    static PRIVATE: u8 = 0;
+  - |
+    /// Module file.
+    mod private;
+  - |
+    /// Inline module.
+    mod private {}
+  - |
+    /// Trait.
+    trait Private {}
+  - |
+    /// Import.
+    use crate::inner::Item;
+  - |
+    /// Extern crate.
+    extern crate alloc;
+  - |
+    /// Macro.
+    macro_rules! private {
+        () => {};
+    }
+  - |
+    /// Macro whose name another macro's re-export doesn't match.
+    macro_rules! private {
+        () => {};
+    }
+    pub(crate) use other;
+  - |
+    /// Macro whose name is only the alias of another re-export.
+    macro_rules! private {
+        () => {};
+    }
+    pub(crate) use other as private;
+  - |
+    /// Macro whose attribute only mentions macro_export.
+    #[doc = "Not a macro_export."]
+    macro_rules! private {
+        () => {};
+    }
+  - |
+    #[doc = "Not a macro_use."]
+    pub mod macros {
+        /// Macro in a module whose attribute only mentions macro_use.
+        macro_rules! private {
+            () => {};
+        }
+    }
+  - |
+    /// Macro used privately.
+    macro_rules! private {
+        () => {};
+    }
+    use private;
+  - |
+    pub struct Public {
+        /// Private field.
+        field: u8,
+    }
+  - |
+    pub struct Public(/// Private tuple field.
+        u8);
+  - |
+    pub struct Public(/// Tuple field in self.
+        pub(self) u8);
+  - |
+    enum Private {
+        /// Variant of a private enum.
+        Idle,
+    }
+  - |
+    enum Private {
+        Busy {
+            /// Field of a private enum's variant.
+            since: u64,
+        },
+    }
+  - |
+    enum Private {
+        Done(/// Tuple field of a private enum's variant.
+            u64),
+    }
+  - |
+    trait Private {
+        /// Method of a private trait.
+        fn method(&self);
+    }
+  - |
+    trait Private {
+        /// Associated type of a private trait.
+        type Output;
+    }
+  - |
+    impl Public {
+        /// Private method.
+        fn method(&self) {}
+    }
+  - |
+    pub fn body() {
+        /// Nested item.
+        fn nested() {}
+    }
+  - |
+    #[cfg(test)]
+    mod tests {
+        /// Test helper.
+        fn helper() {}
+    }
+  - |
+    extern "C" {
+        /// Foreign function.
+        fn foreign();
+    }
