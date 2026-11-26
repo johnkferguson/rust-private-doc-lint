@@ -1,0 +1,6 @@
+# ast-grep's project file: `ast-grep scan` runs the rules under rules/,
+# and `ast-grep test` checks them against rule-tests/.
+ruleDirs:
+  - rules
+testConfigs:
+  - testDir: rule-tests

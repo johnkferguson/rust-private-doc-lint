@@ -1,0 +1,185 @@
+id: no-doc-on-private-item
+language: rust
+severity: error
+message: A doc comment sits on a private item.
+note: |
+  A `///` doc comment belongs on an item visible outside its module:
+  `pub`, `pub(crate)`, `pub(super)` or `pub(in path)`. Turn this one
+  into a `//` comment if it explains a non-obvious why, or delete it. Enum variants, their fields and trait items share the enum's or
+  trait's visibility, and the items of a trait impl count as public. A
+  `macro_rules!` macro counts as public with `#[macro_export]`, a `pub`
+  `use` of its name in the same module, or `#[macro_use]` on an inline
+  module around it.
+
+  The rule can't see into a macro's body, such as `verus!` or
+  `proptest!`, or a `#[macro_use]` on a module declared in another file.
+
+utils:
+  doc-comment:
+    any:
+      - kind: line_comment
+        has:
+          field: outer
+          kind: outer_doc_comment_marker
+      - kind: block_comment
+        has:
+          field: outer
+          kind: outer_doc_comment_marker
+      - kind: attribute_item
+        regex: ^#\s*\[\s*(doc\s*=|cfg_attr\s*\([\s\S]*\bdoc\s*=)
+  # Comments and attributes, which sit between a doc comment and its item.
+  between:
+    any:
+      - kind: line_comment
+      - kind: block_comment
+      - kind: attribute_item
+  # Any visibility but pub(self) and pub(in self).
+  public-visibility:
+    kind: visibility_modifier
+    not:
+      regex: ^pub\s*\(\s*(in\s+)?self\s*\)$
+  # No visibility written, or pub(self) or pub(in self).
+  private:
+    not:
+      has:
+        matches: public-visibility
+  in-trait:
+    inside:
+      kind: declaration_list
+      inside:
+        kind: trait_item
+  in-private-trait:
+    inside:
+      kind: declaration_list
+      inside:
+        kind: trait_item
+        matches: private
+  in-trait-impl:
+    inside:
+      kind: declaration_list
+      inside:
+        kind: impl_item
+        has:
+          field: trait
+          pattern: $TRAIT
+  in-variant:
+    inside:
+      any:
+        - kind: field_declaration_list
+        - kind: ordered_field_declaration_list
+      inside:
+        kind: enum_variant
+  private-enum-variant:
+    kind: enum_variant
+    inside:
+      kind: enum_variant_list
+      inside:
+        kind: enum_item
+        matches: private
+  in-private-enum-variant:
+    inside:
+      any:
+        - kind: field_declaration_list
+        - kind: ordered_field_declaration_list
+      inside:
+        matches: private-enum-variant
+  macro-export:
+    follows:
+      kind: attribute_item
+      regex: macro_export
+      stopBy:
+        not:
+          matches: between
+  # A pub use of the macro's name after it in the same module.
+  macro-reexport:
+    all:
+      - has:
+          field: name
+          pattern: $NAME
+      - precedes:
+          stopBy: end
+          kind: use_declaration
+          all:
+            - has:
+                matches: public-visibility
+            - has:
+                field: argument
+                pattern: $NAME
+  macro-use-module:
+    inside:
+      kind: declaration_list
+      inside:
+        kind: mod_item
+        follows:
+          kind: attribute_item
+          regex: macro_use
+          stopBy:
+            not:
+              matches: between
+  # The node a doc comment in a tuple field list runs into: a field's type
+  # when no visibility is written, or a pub(self) visibility.
+  private-tuple-field:
+    inside:
+      kind: ordered_field_declaration_list
+    not:
+      any:
+        - matches: between
+        - matches: public-visibility
+  private-item:
+    any:
+      # An item with its own visibility, written as none or pub(self).
+      - any:
+          - kind: function_item
+          - kind: function_signature_item
+          - kind: struct_item
+          - kind: enum_item
+          - kind: union_item
+          - kind: type_item
+          - kind: const_item
+          - kind: static_item
+          - kind: mod_item
+          - kind: trait_item
+          - kind: use_declaration
+          - kind: extern_crate_declaration
+          - kind: field_declaration
+        matches: private
+        not:
+          any:
+            - matches: in-trait
+            - matches: in-trait-impl
+            - matches: in-variant
+      - matches: private-tuple-field
+        not:
+          matches: in-variant
+      # A macro_rules! macro nothing makes visible outside its module.
+      - kind: macro_definition
+        not:
+          any:
+            - matches: macro-export
+            - matches: macro-reexport
+            - matches: macro-use-module
+      # A trait item, whose visibility is the trait's.
+      - any:
+          - kind: function_item
+          - kind: function_signature_item
+          - kind: associated_type
+          - kind: const_item
+        matches: in-private-trait
+      # An enum variant or one of its fields, whose visibility is the enum's.
+      - matches: private-enum-variant
+      - any:
+          - kind: field_declaration
+          - matches: private-tuple-field
+        matches: in-private-enum-variant
+
+# Reported at the first doc comment in front of the item.
+rule:
+  matches: doc-comment
+  not:
+    follows:
+      matches: doc-comment
+  precedes:
+    matches: private-item
+    stopBy:
+      not:
+        matches: between
